@@ -215,9 +215,7 @@ def origin_label():
         return "STAGE 1"
     if bonus_origin == "stage2":
         return "STAGE 2 - FLOOR " + str(active_floor + 1)
-    if bonus_origin == "boss":
-        return "BOSS ARENA"
-    return bonus_origin.upper()
+    if bonus_origin == "boss": return "BOSS ARENA" return bonus_origin.upper()
 
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18, color=(1, 1, 1)):

@@ -7,17 +7,6 @@ import random
 import time
 
 
-# =========================================================
-# MONSTER HUNTER: AMAZON JUNGLE SURVIVAL
-# =========================================================
-# Important assignment rule:
-# Every OpenGL/GLU/GLUT function used in this file also appears in Template.py.
-
-
-# -------------------------
-# WINDOW AND WORLD
-# -------------------------
-
 WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 800
 fovY = 75
@@ -26,10 +15,6 @@ GRID_LENGTH = 600
 GRID_CELLS = 20
 TILE_SIZE = (2 * GRID_LENGTH) / GRID_CELLS
 
-
-# -------------------------
-# CAMERA
-# -------------------------
 
 camera_pos = (0, 500, 500)
 camera_angle = 0.0
@@ -42,10 +27,6 @@ CAMERA_HEIGHT_STEP = 20.0
 MIN_CAMERA_HEIGHT = 150.0
 MAX_CAMERA_HEIGHT = 900.0
 
-
-# -------------------------
-# PLAYER AND SCORE
-# -------------------------
 
 player_x = 0.0
 player_y = 0.0
@@ -67,10 +48,6 @@ power_boost_end = 0.0
 boost_ready = False
 
 
-# -------------------------
-# GAME STATE
-# -------------------------
-
 game_mode = "stage1"
 
 STAGE1_SCORE_TARGET = 10
@@ -86,12 +63,6 @@ bonus_started_at = 0.0
 BONUS_DURATION = 30.0
 
 
-# -------------------------
-# BULLETS
-# -------------------------
-
-# Stage 1 bullet layout: [x, y, z, dx, dy, scene]
-# Stage 2/boss layout:   [x, y, z, dx, dy, scene, damage]
 bullets = []
 
 BULLET_SPEED = 430.0
@@ -103,11 +74,6 @@ SIDE_FIRE_COOLDOWN = 0.30
 last_side_shot_time = 0.0
 
 
-# -------------------------
-# MONSTERS
-# -------------------------
-
-# Monster layout: [x, y, type, health, pulse_phase, radius, speed]
 monsters = []
 MONSTER_COUNT = 5
 
@@ -125,10 +91,6 @@ MONSTER_PULSE_AMOUNT = 3.0
 MONSTER_PULSE_SPEED = 3.5
 
 
-# -------------------------
-# STAGE 2
-# -------------------------
-
 STAGE2_FLOOR_Z = [0.0, 160.0, 320.0]
 STAGE2_STAIR_X = [410.0, -410.0]
 STAGE2_HALF_WIDTH = 470.0
@@ -145,14 +107,8 @@ active_floor = 0
 stage2_player_x = -360.0
 stage2_facing = 1
 
-# Stair transition layout:
-# [from_floor, to_floor, start_time, start_x, target_x]
 stair_transition = None
 
-
-# -------------------------
-# BOSS ARENA
-# -------------------------
 
 BOSS_MAX_HEALTH = 36
 boss_health = BOSS_MAX_HEALTH
@@ -160,11 +116,12 @@ boss_master = None
 boss_minions = []
 BOSS_PLAYER_START_X = -400.0
 BOSS_PLAYER_START_Y = -350.0
+BOSS_PLAYER_START_ANGLE = 45.0
 BOSS_MASTER_START_X = 330.0
 BOSS_MASTER_START_Y = 300.0
 boss_player_x = BOSS_PLAYER_START_X
 boss_player_y = BOSS_PLAYER_START_Y
-boss_aim_angle = 0.0
+boss_aim_angle = BOSS_PLAYER_START_ANGLE
 BOSS_ARENA_HALF_WIDTH = 600.0
 BOSS_ARENA_HALF_DEPTH = 600.0
 BOSS_ARENA_MARGIN = 55.0
@@ -185,10 +142,6 @@ BOSS_PROJECTILE_DAMAGE = 2
 BOSS_PROJECTILE_HIT_COOLDOWN = 0.75
 
 
-# -------------------------
-# BONUS STAGE
-# -------------------------
-
 runner_lane = 1
 RUNNER_LANES = [-120.0, 0.0, 120.0]
 RUNNER_PLAYER_Y = -40.0
@@ -205,10 +158,6 @@ ITEM_BOOST = 3
 OBSTACLE_ROCK = 4
 OBSTACLE_LOG = 5
 
-
-# -------------------------
-# DECORATION
-# -------------------------
 
 tree_positions = [
     (-530, -500, 46), (-520, -330, 40), (-535, -140, 50),
@@ -232,16 +181,8 @@ temple_blocks = [
 ]
 
 
-# -------------------------
-# TIME
-# -------------------------
-
 last_update_time = time.time()
 
-
-# =========================================================
-# BASIC HELPERS
-# =========================================================
 
 def normalize_angle(angle):
     return angle % 360.0
@@ -279,10 +220,6 @@ def origin_label():
     return bonus_origin.upper()
 
 
-# =========================================================
-# TEXT AND PRIMITIVE HELPERS
-# =========================================================
-
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18, color=(1, 1, 1)):
     glColor3f(color[0], color[1], color[2])
 
@@ -314,10 +251,6 @@ def draw_box(x, y, z, size_x, size_y, size_z, color):
     glPopMatrix()
 
 
-# =========================================================
-# STAGE 1 JUNGLE
-# =========================================================
-
 def draw_jungle_ground():
     for i in range(GRID_CELLS):
         for j in range(GRID_CELLS):
@@ -338,7 +271,6 @@ def draw_jungle_ground():
             glVertex3f(x0, y1, 0)
             glEnd()
 
-    # Broken stone trail through the center of the combat clearing.
     for path_index in range(11):
         path_y = -520.0 + path_index * 104.0
         path_x = -18.0 if path_index % 2 == 0 else 18.0
@@ -350,8 +282,6 @@ def draw_jungle_ground():
 
 
 def draw_jungle_ruins():
-    # Rear canopy removes the empty black horizon and makes the jungle feel
-    # like a large enclosed arena.
     draw_box(0, GRID_LENGTH + 35, 185,
              1320, 38, 430, (0.035, 0.13, 0.04))
 
@@ -363,7 +293,6 @@ def draw_jungle_ruins():
         gluSphere(gluNewQuadric(), 55, 10, 10)
         glPopMatrix()
 
-    # Two broken temple gateways sit outside the main movement lanes.
     for ruin_x in (-455.0, 455.0):
         draw_box(ruin_x, 250, 70, 42, 58, 140, (0.42, 0.40, 0.29))
         draw_box(ruin_x, 400, 52, 48, 58, 104, (0.34, 0.34, 0.27))
@@ -376,7 +305,6 @@ def draw_jungle_ruins():
         gluSphere(gluNewQuadric(), 34, 9, 9)
         glPopMatrix()
 
-    # Smaller ruined columns add depth without blocking the center path.
     for column_x, column_y, column_height in (
         (-360, -180, 90), (360, -80, 120),
         (-390, 80, 115), (385, 155, 82),
@@ -443,10 +371,6 @@ def draw_jungle_rocks():
         glPopMatrix()
 
 
-# =========================================================
-# PLAYER
-# =========================================================
-
 def draw_player_model(x, y, z, angle, fallen=False):
     glPushMatrix()
     glTranslatef(x, y, z)
@@ -499,10 +423,6 @@ def draw_player_model(x, y, z, angle, fallen=False):
 
     glPopMatrix()
 
-
-# =========================================================
-# MONSTERS
-# =========================================================
 
 def choose_monster_type():
     wave = get_wave()
@@ -615,8 +535,6 @@ def draw_monster(monster, radius, base_z=0.0):
                     radius * 0.55, 8, 4)
         glPopMatrix()
 
-    # Type-specific silhouettes remain readable even when colors overlap with
-    # scenery or when the enemy is far from the camera.
     if monster_type == MONSTER_FAST:
         glColor3f(1.0, 0.85, 0.12)
         for spike_y in (-radius * 0.72, radius * 0.72):
@@ -644,10 +562,6 @@ def draw_monster(monster, radius, base_z=0.0):
 
     glPopMatrix()
 
-
-# =========================================================
-# DAMAGE, BULLETS, AND BONUS TRIGGER
-# =========================================================
 
 def damage_player(amount=1):
     global player_life
@@ -691,17 +605,6 @@ def add_side_bullet(scene, player_position, floor_z, facing, damage):
 def boss_aim_direction():
     angle_rad = math.radians(boss_aim_angle)
     return math.cos(angle_rad), math.sin(angle_rad)
-
-
-def boss_aim_label():
-    normalized_angle = normalize_angle(boss_aim_angle)
-    if normalized_angle == 90.0:
-        return "UP"
-    if normalized_angle == 180.0:
-        return "LEFT"
-    if normalized_angle == 270.0:
-        return "DOWN"
-    return "RIGHT"
 
 
 def add_boss_player_bullet():
@@ -756,47 +659,9 @@ def side_bullet_damage(bullet):
     return 1
 
 
-def swept_hit_distance(start_x, end_x, target_x, target_radius):
-    """Return travel distance to a target crossed this frame, or None."""
-    hit_radius = target_radius + BULLET_SIZE / 2.0
-    segment_min = min(start_x, end_x)
-    segment_max = max(start_x, end_x)
-
-    if target_x + hit_radius < segment_min:
-        return None
-    if target_x - hit_radius > segment_max:
-        return None
-
-    if end_x >= start_x:
-        entry_x = max(start_x, target_x - hit_radius)
-        return entry_x - start_x
-
-    entry_x = min(start_x, target_x + hit_radius)
-    return start_x - entry_x
-
-
-def nearest_side_target(start_x, end_x, candidates, current_time):
-    """Choose only the first enemy crossed in the bullet's direction."""
-    nearest = None
-    nearest_distance = None
-
-    for candidate in candidates:
-        enemy = candidate[2]
-        radius = get_monster_size(enemy, current_time)
-        distance = swept_hit_distance(start_x, end_x, enemy[0], radius)
-        if distance is not None and (
-            nearest_distance is None or distance < nearest_distance
-        ):
-            nearest = candidate
-            nearest_distance = distance
-
-    return nearest
-
-
 def swept_circle_hit_fraction(start_x, start_y, end_x, end_y,
                               target_x, target_y, target_radius,
                               projectile_radius=BULLET_SIZE / 2.0):
-    """Return the first 0..1 hit position on a 2D segment, or None."""
     segment_x = end_x - start_x
     segment_y = end_y - start_y
     offset_x = start_x - target_x
@@ -833,8 +698,8 @@ def swept_circle_hit_fraction(start_x, start_y, end_x, end_y,
     return None
 
 
-def nearest_boss_target(start_x, start_y, end_x, end_y,
-                        candidates, current_time):
+def nearest_2d_target(start_x, start_y, end_x, end_y,
+                      candidates, current_time):
     nearest = None
     nearest_fraction = None
 
@@ -887,9 +752,6 @@ def start_bonus_mode(current_time=None):
 def check_bonus_transition(current_time):
     global bonus_life_trigger_armed
 
-    # Once bonus healing raises life above four, arm the life threshold again.
-    # If the player returns with four or fewer lives, keep it disarmed so the
-    # game does not immediately enter an endless bonus-return loop.
     if player_life > BONUS_LIFE_TRIGGER:
         bonus_life_trigger_armed = True
 
@@ -909,7 +771,6 @@ def check_bonus_transition(current_time):
 
 
 def record_missed_bullet(current_time):
-    """Count one projectile miss and enter bonus immediately on miss 20."""
     global missed_bullets_since_bonus
     missed_bullets_since_bonus += 1
     return check_bonus_transition(current_time)
@@ -924,10 +785,6 @@ def end_game_if_needed():
         return True
     return False
 
-
-# =========================================================
-# STAGE 1 UPDATE
-# =========================================================
 
 def update_stage1_monsters(delta_time, current_time):
     for index in range(len(monsters)):
@@ -961,24 +818,29 @@ def update_stage1_bullets(delta_time, current_time):
     new_bullets = []
 
     for bullet in bullets:
-        bullet[0] += bullet[3] * speed * delta_time
-        bullet[1] += bullet[4] * speed * delta_time
-        hit = False
+        start_x = bullet[0]
+        start_y = bullet[1]
+        end_x = start_x + bullet[3] * speed * delta_time
+        end_y = start_y + bullet[4] * speed * delta_time
+        bullet[0] = end_x
+        bullet[1] = end_y
 
-        for index in range(len(monsters)):
-            monster = monsters[index]
-            radius = get_monster_size(monster, current_time)
-            if get_distance(bullet[0], bullet[1], monster[0], monster[1]) <= (
-                radius + BULLET_SIZE / 2.0
-            ):
-                monster[3] -= 1
-                hit = True
-                if monster[3] <= 0:
-                    game_score += monster_score(monster[2])
-                    monsters[index] = make_stage1_monster()
-                break
+        candidates = [
+            ("stage1", index, monster)
+            for index, monster in enumerate(monsters)
+        ]
+        target = nearest_2d_target(
+            start_x, start_y, end_x, end_y,
+            candidates, current_time
+        )
 
-        if hit:
+        if target is not None:
+            target_index = target[1]
+            monster = target[2]
+            monster[3] -= 1
+            if monster[3] <= 0:
+                game_score += monster_score(monster[2])
+                monsters[target_index] = make_stage1_monster()
             continue
 
         if abs(bullet[0]) > GRID_LENGTH or abs(bullet[1]) > GRID_LENGTH:
@@ -990,10 +852,6 @@ def update_stage1_bullets(delta_time, current_time):
 
     bullets[:] = new_bullets
 
-
-# =========================================================
-# STAGE 2 CREATION, DRAWING, AND UPDATE
-# =========================================================
 
 def make_stage2_enemy(monster_type, x):
     enemy = make_monster_at(x, 0.0, monster_type)
@@ -1052,14 +910,11 @@ def start_stage2():
 
 
 def draw_stage2_world():
-    # A full jungle-temple backdrop keeps Stage 2 visually consistent with
-    # the large Stage 1 world instead of making the floors float in darkness.
     draw_box(0, 185, 220, 1180, 35, 520, (0.045, 0.14, 0.045))
     draw_box(0, 70, -28, 1120, 520, 55, (0.10, 0.24, 0.075))
     draw_box(-535, 40, 220, 45, 430, 500, (0.10, 0.22, 0.07))
     draw_box(535, 40, 220, 45, 430, 500, (0.10, 0.22, 0.07))
 
-    # Stone and vegetation details on the rear jungle wall.
     for column_x in (-455, -230, 0, 230, 455):
         draw_box(column_x, 160, 205, 34, 40, 410, (0.23, 0.25, 0.16))
         glColor3f(0.06, 0.38, 0.08)
@@ -1077,7 +932,6 @@ def draw_stage2_world():
 
         draw_box(0, 0, floor_z - 12, 980, 330, 24, floor_color)
 
-        # Alternating jungle tiles make every floor read like the Stage 1 grid.
         tile_width = 98.0
         for tile_index in range(10):
             tile_x = -441.0 + tile_index * tile_width
@@ -1093,7 +947,6 @@ def draw_stage2_world():
                 draw_box(support_x, 105, floor_z - 80,
                          26, 26, 140, (0.24, 0.22, 0.14))
 
-        # Low jungle rail along the back edge of each platform.
         draw_box(0, 142, floor_z + 24,
                  980, 12, 45, (0.12, 0.25, 0.075))
 
@@ -1159,7 +1012,6 @@ def begin_stair_transition(to_floor):
     connector_index = min(active_floor, to_floor)
     connector_x = STAGE2_STAIR_X[connector_index]
     target_x = 360.0 if connector_x > 0 else -360.0
-    # A projectile from one floor must never hit an enemy on another floor.
     bullets.clear()
     stair_transition = [
         active_floor, to_floor, time.time(), stage2_player_x, target_x
@@ -1254,7 +1106,7 @@ def update_stage2_bullets(delta_time, current_time):
             ("stage2", index, enemy)
             for index, enemy in enumerate(enemies)
         ]
-        target = nearest_boss_target(
+        target = nearest_2d_target(
             start_x, start_y, end_x, end_y,
             candidates, current_time
         )
@@ -1265,7 +1117,6 @@ def update_stage2_bullets(delta_time, current_time):
             if enemy[3] <= 0:
                 game_score += monster_score(enemy[2])
                 enemies.remove(enemy)
-            # Never append a bullet after its first target collision.
             continue
 
         if abs(bullet[0]) > STAGE2_HALF_WIDTH:
@@ -1286,10 +1137,6 @@ def update_stage2(delta_time, current_time):
     if game_mode == "stage2":
         update_stage2_bullets(delta_time, current_time)
 
-
-# =========================================================
-# BOSS ARENA
-# =========================================================
 
 def random_boss_edge_position():
     side = random.randint(0, 3)
@@ -1343,7 +1190,7 @@ def start_boss():
 
     boss_player_x = BOSS_PLAYER_START_X
     boss_player_y = BOSS_PLAYER_START_Y
-    boss_aim_angle = 0.0
+    boss_aim_angle = BOSS_PLAYER_START_ANGLE
     last_side_shot_time = 0.0
     last_boss_shot_time = time.time()
     last_boss_projectile_hit_time = -100.0
@@ -1357,7 +1204,6 @@ def draw_boss_arena():
     tile_width = arena_width / BOSS_ARENA_TILE_COUNT
     tile_depth = arena_depth / BOSS_ARENA_TILE_COUNT
 
-    # A full Stage-1-sized square combat floor.
     draw_box(0, 0, -18, arena_width, arena_depth, 36,
              (0.16, 0.10, 0.055))
     for tile_x_index in range(BOSS_ARENA_TILE_COUNT):
@@ -1375,7 +1221,6 @@ def draw_boss_arena():
             glVertex3f(tile_x, tile_y + tile_depth, 1)
             glEnd()
 
-    # Bright boundary trenches make the much larger playable limit obvious.
     trench_offset = 10.0
     for trench_y in (
         -BOSS_ARENA_HALF_DEPTH - trench_offset,
@@ -1393,7 +1238,6 @@ def draw_boss_arena():
         draw_box(trench_x, 0, 5, 18, arena_depth + 30.0, 8,
                  (0.88, 0.10, 0.02))
 
-    # Temple walls and ruins sit outside the open combat square.
     wall_x = BOSS_ARENA_HALF_WIDTH + 35.0
     wall_y = BOSS_ARENA_HALF_DEPTH + 35.0
     draw_box(-wall_x, 0, 75, 30, arena_depth + 70.0, 150,
@@ -1405,7 +1249,6 @@ def draw_boss_arena():
     draw_box(0, -wall_y, 35, arena_width + 70.0, 30, 70,
              (0.30, 0.28, 0.18))
 
-    # Rear jungle pillars and canopies frame the arena without blocking it.
     for pillar_x in (-450, -150, 150, 450):
         pillar_y = BOSS_ARENA_HALF_DEPTH - 35.0
         draw_box(pillar_x, pillar_y, 82, 42, 42, 164,
@@ -1423,7 +1266,6 @@ def draw_boss_arena():
         gluSphere(gluNewQuadric(), 34, 10, 10)
         glPopMatrix()
 
-    # Broken side ruins reinforce the expanded depth at a glance.
     for ruin_y in (-360, -80, 200, 430):
         draw_box(-570, ruin_y, 38, 55, 48, 76,
                  (0.38, 0.33, 0.23))
@@ -1432,7 +1274,6 @@ def draw_boss_arena():
 
 
 def draw_fire_titan(monster, current_time):
-    """Armored master model made only from template-approved primitives."""
     facing_angle = math.degrees(math.atan2(
         boss_player_y - monster[1],
         boss_player_x - monster[0]
@@ -1443,7 +1284,6 @@ def draw_fire_titan(monster, current_time):
     glTranslatef(monster[0], monster[1], 0)
     glRotatef(facing_angle, 0, 0, 1)
 
-    # Heavy legs and armored torso.
     for leg_y in (-25.0, 25.0):
         draw_box(-8, leg_y, 28, 28, 28, 56, (0.10, 0.08, 0.09))
         draw_box(12, leg_y, 8, 48, 32, 16, (0.26, 0.08, 0.04))
@@ -1457,7 +1297,6 @@ def draw_fire_titan(monster, current_time):
     gluSphere(gluNewQuadric(), 31, 12, 12)
     glPopMatrix()
 
-    # Bright pulsing chest core.
     glColor3f(1.0, 0.10, 0.02)
     glPushMatrix()
     glTranslatef(42, 0, 72)
@@ -1469,7 +1308,6 @@ def draw_fire_titan(monster, current_time):
     gluSphere(gluNewQuadric(), 6, 9, 9)
     glPopMatrix()
 
-    # Glowing eyes.
     glColor3f(1.0, 0.75, 0.03)
     for eye_y in (-10.0, 10.0):
         glPushMatrix()
@@ -1477,7 +1315,6 @@ def draw_fire_titan(monster, current_time):
         gluSphere(gluNewQuadric(), 5, 8, 8)
         glPopMatrix()
 
-    # Large tapered horns.
     glColor3f(0.88, 0.78, 0.56)
     for horn_y in (-20.0, 20.0):
         glPushMatrix()
@@ -1486,7 +1323,6 @@ def draw_fire_titan(monster, current_time):
         gluCylinder(gluNewQuadric(), 8, 0, 48, 9, 5)
         glPopMatrix()
 
-    # Shoulder cannons visually identify the projectile source.
     for cannon_y in (-47.0, 47.0):
         draw_box(0, cannon_y, 92, 38, 28, 30, (0.08, 0.07, 0.08))
         glColor3f(0.52, 0.10, 0.035)
@@ -1496,7 +1332,6 @@ def draw_fire_titan(monster, current_time):
         gluCylinder(gluNewQuadric(), 9, 7, 50, 10, 5)
         glPopMatrix()
 
-    # Forward claws.
     glColor3f(0.58, 0.13, 0.045)
     for claw_y in (-38.0, 38.0):
         glPushMatrix()
@@ -1515,7 +1350,6 @@ def boss_is_in_rage_phase():
 def spawn_boss_projectiles(current_time):
     global last_boss_shot_time
 
-    # The titan is limited to one active fireball in every health phase.
     if boss_master is None or boss_projectiles:
         return
 
@@ -1586,7 +1420,6 @@ def update_boss_projectiles(delta_time, current_time):
                     return
                 if check_bonus_transition(current_time):
                     return
-            # A fireball always disappears on contact, even during immunity.
             continue
 
         if (
@@ -1665,7 +1498,7 @@ def update_boss_bullets(delta_time, current_time):
         if boss_master is not None:
             candidates.append(("master", -1, boss_master))
 
-        target = nearest_boss_target(
+        target = nearest_2d_target(
             start_x, start_y, end_x, end_y,
             candidates, current_time
         )
@@ -1695,7 +1528,6 @@ def update_boss_bullets(delta_time, current_time):
                     game_mode = "win"
                     return
 
-            # One projectile can damage only this nearest target.
             continue
 
         if (
@@ -1718,10 +1550,6 @@ def update_boss(delta_time, current_time):
     if game_mode == "boss":
         update_boss_projectiles(delta_time, current_time)
 
-
-# =========================================================
-# BONUS STAGE
-# =========================================================
 
 def choose_bonus_object():
     number = random.randint(1, 100)
@@ -1944,10 +1772,6 @@ def update_bonus(delta_time, current_time):
         return_from_bonus(current_time)
 
 
-# =========================================================
-# RESET
-# =========================================================
-
 def reset_game():
     global player_x
     global player_y
@@ -2002,7 +1826,7 @@ def reset_game():
     boss_minions.clear()
     boss_player_x = BOSS_PLAYER_START_X
     boss_player_y = BOSS_PLAYER_START_Y
-    boss_aim_angle = 0.0
+    boss_aim_angle = BOSS_PLAYER_START_ANGLE
     boss_minion_cycle_index = 0
     last_boss_shot_time = 0.0
     last_boss_projectile_hit_time = -100.0
@@ -2020,10 +1844,6 @@ def reset_game():
     reset_stage2()
     last_update_time = time.time()
 
-
-# =========================================================
-# INPUT
-# =========================================================
 
 def keyboardListener(key, x, y):
     global player_x
@@ -2088,17 +1908,17 @@ def keyboardListener(key, x, y):
 
     elif game_mode == "boss":
         if key == b'a':
-            boss_aim_angle = 180.0
-            boss_player_x -= STAGE2_MOVE_STEP
+            boss_aim_angle = normalize_angle(boss_aim_angle + turn_step)
         elif key == b'd':
-            boss_aim_angle = 0.0
-            boss_player_x += STAGE2_MOVE_STEP
+            boss_aim_angle = normalize_angle(boss_aim_angle - turn_step)
         elif key == b'w':
-            boss_aim_angle = 90.0
-            boss_player_y += STAGE2_MOVE_STEP
+            angle_rad = math.radians(boss_aim_angle)
+            boss_player_x += math.cos(angle_rad) * player_speed
+            boss_player_y += math.sin(angle_rad) * player_speed
         elif key == b's':
-            boss_aim_angle = 270.0
-            boss_player_y -= STAGE2_MOVE_STEP
+            angle_rad = math.radians(boss_aim_angle)
+            boss_player_x -= math.cos(angle_rad) * player_speed
+            boss_player_y -= math.sin(angle_rad) * player_speed
         boss_player_x = max(
             -BOSS_ARENA_HALF_WIDTH + BOSS_ARENA_MARGIN,
             min(BOSS_ARENA_HALF_WIDTH - BOSS_ARENA_MARGIN,
@@ -2163,17 +1983,12 @@ def mouseListener(button, state, x, y):
     glutPostRedisplay()
 
 
-# =========================================================
-# CAMERA
-# =========================================================
-
 def setupCamera():
     global camera_pos
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
 
-    # Each scene uses a field of view suited to its gameplay and scale.
     scene_fov = fovY
     if game_mode == "stage1" and camera_mode == "first_person":
         scene_fov = 90
@@ -2222,10 +2037,6 @@ def setupCamera():
     gluLookAt(cam_x, cam_y, cam_z, 0, 0, 0, 0, 0, 1)
 
 
-# =========================================================
-# UPDATE DISPATCH
-# =========================================================
-
 def idle():
     global last_update_time
 
@@ -2234,8 +2045,6 @@ def idle():
     last_update_time = current_time
     delta_time = min(delta_time, 0.05)
 
-    # Safety check before any movement or collision update. This also handles
-    # the case where life and miss values become ready on consecutive frames.
     if game_mode in ("stage1", "stage2", "boss"):
         if check_bonus_transition(current_time):
             glutPostRedisplay()
@@ -2265,10 +2074,6 @@ def idle():
 
     glutPostRedisplay()
 
-
-# =========================================================
-# HUD
-# =========================================================
 
 def draw_common_combat_hud(stage_name):
     draw_text(10, 770, stage_name)
@@ -2319,7 +2124,8 @@ def draw_boss_hud(current_time):
               + " / " + str(BOSS_MAX_HEALTH),
               color=(1.0, 0.2, 0.2))
     draw_text(350, 690, "ACTIVE MINIONS: " + str(len(boss_minions)))
-    draw_text(350, 660, "GUN DIRECTION: " + boss_aim_label(),
+    draw_text(350, 660, "GUN ANGLE: "
+              + str(int(normalize_angle(boss_aim_angle))) + " DEGREES",
               color=(0.2, 0.9, 1.0))
     if boss_is_in_rage_phase():
         draw_text(350, 630, "RAGE PHASE - FASTER TITAN",
@@ -2346,10 +2152,6 @@ def draw_bonus_hud(current_time):
         draw_text(10, 560, "POWER BOOST COLLECTED",
                   color=(1.0, 0.4, 1.0))
 
-
-# =========================================================
-# DISPLAY
-# =========================================================
 
 def draw_stage1_scene(current_time, fallen=False):
     draw_jungle_ruins()
@@ -2443,10 +2245,6 @@ def showScreen():
 
     glutSwapBuffers()
 
-
-# =========================================================
-# MAIN
-# =========================================================
 
 def main():
     reset_game()

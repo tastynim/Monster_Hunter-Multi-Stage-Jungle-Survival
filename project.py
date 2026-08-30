@@ -38,20 +38,17 @@ turn_step = 5.0
 PLAYER_SCALE = 1.4
 PLAYER_COLLISION_RADIUS = 25.0
 
-player_life = 6
-MAX_LIFE = 6
+INITIAL_LIFE = 6
+player_life = INITIAL_LIFE
 game_score = 0
 
 weapon_level = 1
 shield_count = 0
-power_boost_end = 0.0
-boost_ready = False
 
 
 game_mode = "stage1"
 
-STAGE1_SCORE_TARGET = 10
-WAVE_SCORE_STEP = 10
+STAGE1_SCORE_TARGET = 5
 
 missed_bullets_since_bonus = 0
 BONUS_MISS_TARGET = 20
@@ -66,7 +63,6 @@ BONUS_DURATION = 30.0
 bullets = []
 
 BULLET_SPEED = 430.0
-BOOSTED_BULLET_SPEED = 600.0
 BULLET_SIZE = 6.0
 BULLET_START_DISTANCE = 46.0 * PLAYER_SCALE + BULLET_SIZE / 2.0
 BULLET_Z = 31.0 * PLAYER_SCALE
@@ -110,7 +106,7 @@ stage2_facing = 1
 stair_transition = None
 
 
-BOSS_MAX_HEALTH = 36
+BOSS_MAX_HEALTH = 5
 boss_health = BOSS_MAX_HEALTH
 boss_master = None
 boss_minions = []
@@ -126,6 +122,7 @@ BOSS_ARENA_HALF_WIDTH = 600.0
 BOSS_ARENA_HALF_DEPTH = 600.0
 BOSS_ARENA_MARGIN = 55.0
 BOSS_ARENA_TILE_COUNT = 20
+BOSS_PLAYER_BULLET_HIT_RADIUS = 64.0
 BOSS_NORMAL_MINION_HEALTH = 3
 BOSS_FAST_MINION_HEALTH = 2
 BOSS_HEAVY_MINION_HEALTH = 6
@@ -154,9 +151,8 @@ BONUS_SPAWN_DELAY = 0.75
 ITEM_LIFE = 0
 ITEM_WEAPON = 1
 ITEM_SHIELD = 2
-ITEM_BOOST = 3
-OBSTACLE_ROCK = 4
-OBSTACLE_LOG = 5
+OBSTACLE_ROCK = 3
+OBSTACLE_LOG = 4
 
 
 tree_positions = [
@@ -194,14 +190,6 @@ def get_distance(x1, y1, x2, y2):
     return math.sqrt(dx * dx + dy * dy)
 
 
-def get_wave():
-    return 1 + int(game_score / WAVE_SCORE_STEP)
-
-
-def boost_is_active(current_time):
-    return current_time < power_boost_end
-
-
 def monster_score(monster_type):
     if monster_type == MONSTER_FAST:
         return 2
@@ -215,7 +203,9 @@ def origin_label():
         return "STAGE 1"
     if bonus_origin == "stage2":
         return "STAGE 2 - FLOOR " + str(active_floor + 1)
-    if bonus_origin == "boss": return "BOSS ARENA" return bonus_origin.upper()
+    if bonus_origin == "boss":
+        return "BOSS ARENA"
+    return bonus_origin.upper()
 
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18, color=(1, 1, 1)):
@@ -256,6 +246,7 @@ def draw_jungle_ground():
             y0 = -GRID_LENGTH + j * TILE_SIZE
             x1 = x0 + TILE_SIZE
             y1 = y0 + TILE_SIZE
+
             if (i + j) % 2 == 0:
                 glColor3f(0.18, 0.34, 0.07)
             else:
@@ -421,23 +412,6 @@ def draw_player_model(x, y, z, angle, fallen=False):
     glPopMatrix()
 
 
-def choose_monster_type():
-    wave = get_wave()
-    number = random.randint(1, 100)
-
-    if wave <= 1:
-        return MONSTER_NORMAL
-    if wave == 2:
-        if number <= 25:
-            return MONSTER_FAST
-        return MONSTER_NORMAL
-    if number <= 25:
-        return MONSTER_HEAVY
-    if number <= 55:
-        return MONSTER_FAST
-    return MONSTER_NORMAL
-
-
 def monster_settings(monster_type):
     if monster_type == MONSTER_FAST:
         return 13.0, FAST_MONSTER_SPEED, 1
@@ -469,7 +443,7 @@ def random_stage1_monster_position():
 
 def make_stage1_monster(monster_type=None):
     if monster_type is None:
-        monster_type = choose_monster_type()
+        monster_type = MONSTER_NORMAL
     x, y = random_stage1_monster_position()
     return make_monster_at(x, y, monster_type)
 
@@ -615,7 +589,7 @@ def add_boss_player_bullet():
         dx,
         dy,
         "boss",
-        weapon_level,
+        1,
     ])
 
 
@@ -640,7 +614,7 @@ def fire_bullet():
         last_side_shot_time = current_time
         floor_z = STAGE2_FLOOR_Z[active_floor]
         add_side_bullet("stage2", stage2_player_x,
-                        floor_z, stage2_facing, weapon_level)
+                        floor_z, stage2_facing, 1)
 
     elif game_mode == "boss":
         current_time = time.time()
@@ -702,7 +676,10 @@ def nearest_2d_target(start_x, start_y, end_x, end_y,
 
     for candidate in candidates:
         enemy = candidate[2]
-        radius = get_monster_size(enemy, current_time)
+        if len(candidate) > 3:
+            radius = candidate[3]
+        else:
+            radius = get_monster_size(enemy, current_time)
         fraction = swept_circle_hit_fraction(
             start_x, start_y, end_x, end_y,
             enemy[0], enemy[1], radius
@@ -790,7 +767,7 @@ def update_stage1_monsters(delta_time, current_time):
         dx = player_x - monster[0]
         dy = player_y - monster[1]
         distance = math.sqrt(dx * dx + dy * dy)
-        speed = monster[6] + get_wave() * 2.0
+        speed = monster[6] + 2.0
 
         if distance > 0.0001:
             monster[0] += (dx / distance) * speed * delta_time
@@ -811,7 +788,7 @@ def update_stage1_bullets(delta_time, current_time):
     global game_score
     global missed_bullets_since_bonus
 
-    speed = BOOSTED_BULLET_SPEED if boost_is_active(current_time) else BULLET_SPEED
+    speed = BULLET_SPEED
     new_bullets = []
 
     for bullet in bullets:
@@ -897,9 +874,11 @@ def start_stage2():
     global game_mode
     global camera_mode
     global last_side_shot_time
+    global weapon_level
     game_mode = "stage2"
     camera_mode = "third_person"
     last_side_shot_time = 0.0
+    weapon_level = 1
     bullets.clear()
     boss_projectiles.clear()
     monsters.clear()
@@ -1087,7 +1066,7 @@ def update_stage2_bullets(delta_time, current_time):
     global game_score
     global missed_bullets_since_bonus
 
-    speed = BOOSTED_BULLET_SPEED if boost_is_active(current_time) else BULLET_SPEED
+    speed = BULLET_SPEED
     enemies = stage2_floor_enemies[active_floor]
     new_bullets = []
 
@@ -1162,6 +1141,7 @@ def make_boss_minion(monster_type):
 
 def start_boss():
     global game_mode
+    global weapon_level
     global boss_health
     global boss_master
     global boss_player_x
@@ -1173,6 +1153,7 @@ def start_boss():
     global last_boss_projectile_hit_time
 
     game_mode = "boss"
+    weapon_level = 1
     boss_health = BOSS_MAX_HEALTH
     boss_master = make_monster_at(
         BOSS_MASTER_START_X, BOSS_MASTER_START_Y, MONSTER_BOSS
@@ -1477,7 +1458,7 @@ def update_boss_bullets(delta_time, current_time):
     global game_mode
     global boss_minion_cycle_index
 
-    speed = BOOSTED_BULLET_SPEED if boost_is_active(current_time) else BULLET_SPEED
+    speed = BULLET_SPEED
     new_bullets = []
 
     for bullet in bullets:
@@ -1493,7 +1474,10 @@ def update_boss_bullets(delta_time, current_time):
             for index, minion in enumerate(boss_minions)
         ]
         if boss_master is not None:
-            candidates.append(("master", -1, boss_master))
+            candidates.append((
+                "master", -1, boss_master,
+                BOSS_PLAYER_BULLET_HIT_RADIUS,
+            ))
 
         target = nearest_2d_target(
             start_x, start_y, end_x, end_y,
@@ -1550,14 +1534,15 @@ def update_boss(delta_time, current_time):
 
 def choose_bonus_object():
     number = random.randint(1, 100)
-    if number <= 18:
+
+    if number <= 28:
         return ITEM_LIFE
-    if number <= 30:
-        return ITEM_WEAPON
     if number <= 40:
-        return ITEM_SHIELD
+        if bonus_origin == "stage1":
+            return ITEM_WEAPON
+        return ITEM_LIFE
     if number <= 50:
-        return ITEM_BOOST
+        return ITEM_SHIELD
     if number <= 75:
         return OBSTACLE_ROCK
     return OBSTACLE_LOG
@@ -1662,22 +1647,6 @@ def draw_bonus_object(item):
         gluSphere(gluNewQuadric(), 6, 8, 8)
         glPopMatrix()
 
-    elif object_type == ITEM_BOOST:
-        glColor3f(0.90, 0.18, 0.72)
-        glPushMatrix()
-        glTranslatef(-6, 0, 0)
-        gluSphere(gluNewQuadric(), 12, 10, 10)
-        glPopMatrix()
-        glPushMatrix()
-        glTranslatef(6, 0, 0)
-        gluSphere(gluNewQuadric(), 12, 10, 10)
-        glPopMatrix()
-        glColor3f(0.10, 0.55, 0.12)
-        glPushMatrix()
-        glTranslatef(0, 0, 9)
-        gluCylinder(gluNewQuadric(), 2.5, 1.5, 16, 8, 4)
-        glPopMatrix()
-
     elif object_type == OBSTACLE_ROCK:
         glColor3f(0.35, 0.33, 0.28)
         for rock_x, rock_y, rock_z, scale_x, scale_y, scale_z in (
@@ -1712,24 +1681,20 @@ def apply_bonus_object(object_type):
     global player_life
     global weapon_level
     global shield_count
-    global boost_ready
 
     if object_type == ITEM_LIFE:
-        player_life = min(MAX_LIFE, player_life + 1)
+        player_life += 1
     elif object_type == ITEM_WEAPON:
-        weapon_level = min(3, weapon_level + 1)
+        if bonus_origin == "stage1":
+            weapon_level = min(3, weapon_level + 1)
     elif object_type == ITEM_SHIELD:
         shield_count = min(2, shield_count + 1)
-    elif object_type == ITEM_BOOST:
-        boost_ready = True
     else:
         damage_player(1)
 
 
 def return_from_bonus(current_time):
     global game_mode
-    global power_boost_end
-    global boost_ready
     global last_side_shot_time
     global last_boss_shot_time
 
@@ -1738,10 +1703,6 @@ def return_from_bonus(current_time):
     last_boss_shot_time = current_time
     boss_projectiles.clear()
     bonus_objects.clear()
-
-    if boost_ready:
-        power_boost_end = current_time + 15.0
-        boost_ready = False
 
 
 def update_bonus(delta_time, current_time):
@@ -1778,8 +1739,6 @@ def reset_game():
     global game_score
     global weapon_level
     global shield_count
-    global power_boost_end
-    global boost_ready
     global game_mode
     global missed_bullets_since_bonus
     global bonus_life_trigger_armed
@@ -1805,12 +1764,10 @@ def reset_game():
     player_angle = 90.0
     gun_angle = 90.0
 
-    player_life = MAX_LIFE
+    player_life = INITIAL_LIFE
     game_score = 0
     weapon_level = 1
     shield_count = 0
-    power_boost_end = 0.0
-    boost_ready = False
 
     game_mode = "stage1"
     missed_bullets_since_bonus = 0
@@ -2076,7 +2033,6 @@ def draw_common_combat_hud(stage_name):
     draw_text(10, 770, stage_name)
     draw_text(10, 740, "LIVES: " + str(player_life))
     draw_text(10, 710, "SCORE: " + str(game_score))
-    draw_text(10, 680, "WEAPON LEVEL: " + str(weapon_level))
     draw_text(10, 650, "SHIELD: " + str(shield_count))
     draw_text(10, 620, "MISSED BULLETS: "
               + str(missed_bullets_since_bonus)
@@ -2086,10 +2042,8 @@ def draw_common_combat_hud(stage_name):
 
 def draw_stage1_hud(current_time):
     draw_common_combat_hud("STAGE 1 - AMAZON JUNGLE")
-    draw_text(10, 560, "WAVE: " + str(get_wave()))
-    draw_text(10, 530, "NEXT STAGE AT SCORE: " + str(STAGE1_SCORE_TARGET))
-    if boost_is_active(current_time):
-        draw_text(10, 500, "POWER BOOST: ACTIVE", color=(1.0, 0.4, 1.0))
+    draw_text(10, 680, "WEAPON LEVEL: " + str(weapon_level))
+    draw_text(10, 560, "NEXT STAGE AT SCORE: " + str(STAGE1_SCORE_TARGET))
 
 
 def draw_stage2_hud(current_time):
@@ -2109,10 +2063,6 @@ def draw_stage2_hud(current_time):
         draw_text(300, 750, "BOSS DOOR OPEN - PRESS W",
                   color=(0.2, 1.0, 0.4))
 
-    if boost_is_active(current_time):
-        draw_text(10, 530, "POWER BOOST: ACTIVE", color=(1.0, 0.4, 1.0))
-
-
 def draw_boss_hud(current_time):
     draw_common_combat_hud("BOSS ARENA")
     draw_text(350, 750, "JUNGLE TITAN",
@@ -2130,10 +2080,6 @@ def draw_boss_hud(current_time):
     else:
         draw_text(350, 630, "SINGLE FIRE PHASE",
                   color=(1.0, 0.75, 0.15))
-    if boost_is_active(current_time):
-        draw_text(350, 600, "POWER BOOST: ACTIVE", color=(1.0, 0.4, 1.0))
-
-
 def draw_bonus_hud(current_time):
     remaining = max(0, int(math.ceil(
         BONUS_DURATION - (current_time - bonus_started_at)
@@ -2141,13 +2087,11 @@ def draw_bonus_hud(current_time):
     draw_text(10, 770, "BONUS STAGE - TEMPLE RUN")
     draw_text(10, 740, "TIME LEFT: " + str(remaining) + " SECONDS")
     draw_text(10, 710, "LIVES: " + str(player_life))
-    draw_text(10, 680, "WEAPON LEVEL: " + str(weapon_level))
+    if bonus_origin == "stage1":
+        draw_text(10, 680, "WEAPON LEVEL: " + str(weapon_level))
     draw_text(10, 650, "SHIELD: " + str(shield_count))
     draw_text(10, 620, "RETURNING TO: " + origin_label())
     draw_text(10, 590, "MISSED BULLETS RESET: 0 / 20")
-    if boost_ready:
-        draw_text(10, 560, "POWER BOOST COLLECTED",
-                  color=(1.0, 0.4, 1.0))
 
 
 def draw_stage1_scene(current_time, fallen=False):
@@ -2249,7 +2193,7 @@ def main():
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
     glutInitWindowPosition(0, 0)
-    glutCreateWindow(b"Monster Hunter - Multi-Stage Jungle Survival")
+    glutCreateWindow(b"Monster Hunter Multi-Stage Jungle Survival")
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
     glutSpecialFunc(specialKeyListener)
@@ -2260,3 +2204,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

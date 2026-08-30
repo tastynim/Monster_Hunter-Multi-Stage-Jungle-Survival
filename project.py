@@ -256,7 +256,6 @@ def draw_jungle_ground():
             y0 = -GRID_LENGTH + j * TILE_SIZE
             x1 = x0 + TILE_SIZE
             y1 = y0 + TILE_SIZE
-
             if (i + j) % 2 == 0:
                 glColor3f(0.18, 0.34, 0.07)
             else:
